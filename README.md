@@ -1,4 +1,4 @@
-# Flight Canvas <div align="right"><img src="assets/sillage-du-ciel.svg" height="25" /></div>
+# Flight Canvas
 
 一个基于 HTML 的本地飞行记录可视化编辑器。导入自己的航班数据，在自由画布上组合航线地图、统计卡片与旅行故事，并导出可分享的图片或视频。
 源码全部由 GPT-5.6 撰写，灵感来源于 ios 系统的桌面小组件。
@@ -60,3 +60,4 @@ MOV 导出受限于作者技术，动画过多会占用大量内存，需要 1-1
 ## 贡献
 
 欢迎提交问题、功能建议和非商业用途的改进。
+ <div align="right"><img src="assets/sillage-du-ciel.svg" height="30" /></div>
