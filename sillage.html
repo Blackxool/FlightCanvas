@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f4f6f8" />
+    <title>Sillage du Ciel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Allura&family=IBM+Plex+Mono:wght@400;600&family=LXGW+WenKai&family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@400;700&family=ZCOOL+XiaoWei&display=swap" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="sillage.css?v=20260806-image-preview" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Flight Canvas 设置">
+        <main class="settings-content">
+          <section class="settings-panel active" id="import-panel">
+            <label class="canvas-preview data-import-preview drop-zone" id="drop-zone" for="file-input">
+              <input id="file-input" type="file" accept=".csv,.xls,.xlsx,.json,.flightcanvas" hidden />
+              <span class="data-import-gradient" aria-hidden="true"></span>
+              <span class="preview-project-name" data-project-logo role="img" aria-label="Sillage du Ciel"></span>
+              <div class="data-import-action"><strong>导入航班数据</strong><span>支持 CSV、XLS、XLSX 或 JSON 项目文件</span></div>
+              <i class="import-info" tabindex="0" role="img" aria-label="导入格式说明" data-tooltip="航班数据需要：日期、航班号、起飞时间、出发机场、到达时间、到达机场、里程、机型。可选 tag 字段会自动同步到标签设置。列顺序可任意；支持示例中的 Date、No.、dept.time、dept、dst.time、dst、mileage、aircraftType、tag。机型建议使用 ICAO 四字码。">📋</i>
+              <button class="clear-flights-button" id="clear-flights" type="button" aria-label="清空所有航班数据" title="清空所有航班数据">🗑️</button>
+            </label>
+            <details class="data-filter-disclosure">
+              <summary><span>筛选</span><small id="filter-active-count">未启用</small></summary>
+              <div class="data-filter-content">
+                <div class="filter-section">
+                  <div class="section-label"><span>日期</span><button class="text-button" data-clear-filter="date" type="button">清除</button></div>
+                  <div class="date-fields"><input id="filter-date-start" type="date" /><span>至</span><input id="filter-date-end" type="date" /></div>
+                </div>
+                <div class="filter-section">
+                  <div class="section-label"><span>航司</span><button class="text-button" data-clear-filter="airline" type="button">全部</button></div>
+                  <div class="chip-list" id="airline-filters"></div>
+                </div>
+                <div class="filter-section">
+                  <div class="section-label"><span>机型</span><button class="text-button" data-clear-filter="aircraft" type="button">全部</button></div>
+                  <div class="chip-list" id="aircraft-filters"></div>
+                </div>
+              </div>
+            </details>
+            <section class="data-tag-section">
+              <div class="section-label"><span>标签</span><button class="text-button" data-clear-filter="tag" type="button">全部</button></div>
+              <div class="tag-manager" id="tag-manager"></div>
+            </section>
+            <div class="table-toolbar"><span>航班列表</span><button class="text-button" id="select-visible" type="button">全选当前</button></div>
+            <div class="flight-table" id="flight-table" role="table" aria-label="航班记录"></div>
+          </section>
+
+          <section class="settings-panel export-section motion-export-section" id="export-panel">
+            <div class="canvas-preview theme-system font-sans" id="canvas-preview">
+              <div class="canvas-preview-top"><strong>整体外观</strong><span id="canvas-size-label">6 x 4</span><span id="canvas-pixels" hidden>960 x 640 px</span></div>
+              <span class="preview-project-name" id="preview-project-name" data-project-logo role="img" aria-label="Sillage du Ciel"></span>
+              <div class="preview-control"><span>画布</span><div class="segmented-control" id="theme-mode"><button data-value="light" type="button">明亮</button><button data-value="dark" type="button">暗色</button><button data-value="system" class="selected" type="button">透明</button></div></div>
+              <div class="preview-control preview-color-control"><span>主题</span><div class="swatch-row" id="accent-swatches"><button data-color="#e9573f" style="--swatch:#e9573f" class="selected" aria-label="珊瑚红" type="button"></button><button data-color="#16856d" style="--swatch:#16856d" aria-label="松石绿" type="button"></button><button data-color="#1677c8" style="--swatch:#1677c8" aria-label="晴空蓝" type="button"></button><button data-color="#d18919" style="--swatch:#d18919" aria-label="琥珀黄" type="button"></button><button data-color="#8d5fd3" style="--swatch:#8d5fd3" aria-label="紫罗兰" type="button"></button><button data-color="#db4f8a" style="--swatch:#db4f8a" aria-label="玫红" type="button"></button><button data-color="#2d9aaf" style="--swatch:#2d9aaf" aria-label="青蓝" type="button"></button><button data-color="#64748b" style="--swatch:#64748b" aria-label="石板灰" type="button"></button><label class="color-ring-picker" id="accent-custom-picker" style="--picker-color:#e9573f" title="自定义主题色"><input id="accent-custom" type="color" value="#e9573f" aria-label="自定义主题色" /></label></div></div>
+              <div class="preview-control"><span>字体</span><div class="segmented-control" id="font-mode"><button data-value="sans" class="selected" type="button">无衬线</button><button data-value="serif" type="button">有衬线</button></div></div>
+            </div>
+            <p id="export-summary" hidden>960 x 640 px，浅色背景</p>
+            <div class="setting-group export-scale-group">
+              <div class="export-setting-heading"><span class="setting-label">导出分辨率</span><span class="export-pixel-size" id="export-pixel-size">实际像素 960 x 640</span></div>
+              <div class="segmented-control" id="export-scale"><button data-value="1" class="selected" type="button">1x</button><button data-value="2" type="button">2x</button><button data-value="3" type="button">3x</button></div>
+            </div>
+            <div class="export-block static-export-block">
+              <div class="export-block-title">静态导出</div>
+              <div class="export-two-column-row">
+                <button class="secondary-button" id="download-project" type="button">导出项目文件</button>
+                <button class="primary-button" id="download-png" type="button">导出 PNG</button>
+              </div>
+            </div>
+            <div class="export-block dynamic-export-block">
+              <div class="export-block-title">动态导出</div>
+              <div class="export-two-column-row dynamic-settings-row">
+                <label class="compact-export-control" for="motion-cycle-seconds"><span>滑动时间</span><div class="cycle-duration-row"><input id="motion-cycle-seconds" type="number" min="1" max="9" step="0.5" value="8" /><span>秒</span></div></label>
+                <div class="compact-export-control"><span>滑动方向</span><div class="segmented-control" id="global-stack-direction"><button data-global-stack-direction="up" class="selected" type="button">向上</button><button data-global-stack-direction="left" type="button">向左</button></div></div>
+              </div>
+              <div class="export-two-column-row dynamic-actions-row">
+                <button class="secondary-button motion-preview-button" id="preview-motion" type="button" disabled><span aria-hidden="true">▶</span><span>预览动态</span></button>
+                <button class="primary-button motion-export-button" id="download-mov" type="button"><i aria-hidden="true"></i><span id="download-mov-label">导出动态 MOV</span></button>
+              </div>
+            </div>
+            <p class="export-note" id="export-note" hidden></p>
+            <p class="export-note" id="motion-export-note" hidden></p>
+            <a class="motion-download-link" id="motion-download-link" href="#" download hidden>再次下载 MOV</a>
+          </section>
+        </main>
+      </aside>
+
+      <section class="workspace" aria-label="画布工作台">
+        <div class="workspace-control-dock">
+          <nav class="stage-nav workspace-stage-nav" aria-label="设置页面">
+            <button class="stage-button active" data-panel="import-panel" type="button" aria-label="展示数据" aria-pressed="true"><span>1</span><strong>数据</strong></button>
+            <button class="stage-button" data-panel="export-panel" type="button" aria-label="展示视觉" aria-pressed="false"><span>2</span><strong>视觉</strong></button>
+          </nav>
+        </div>
+        <header class="workspace-toolbar">
+          <div class="project-badge"><span class="live-dot"></span><span id="visible-flight-count">2 条航班</span></div>
+          <div class="toolbar-actions"><button class="tool-button" id="undo-button" type="button" title="撤销">↶</button><button class="tool-button" id="redo-button" type="button" title="重做">↷</button><button class="tool-button" id="lock-button" type="button" title="锁定画布">⌑</button></div>
+        </header>
+        <div class="canvas-stage" id="canvas-stage">
+          <div class="canvas-scale" id="canvas-scale">
+            <div class="design-canvas theme-light font-sans" id="design-canvas" aria-label="飞行可视化画布"></div>
+          </div>
+        </div>
+        <div class="workspace-action-dock">
+          <button class="tool-button" id="fit-button" type="button" title="适应窗口" aria-label="适应窗口">⌗</button>
+          <button class="add-card-fab" id="open-card-picker" type="button" aria-label="添加卡片" aria-haspopup="dialog" title="添加卡片">+</button>
+        </div>
+        <aside class="card-inspector" id="card-inspector" aria-label="卡片设置"></aside>
+        <div class="toast" id="toast" role="status"></div>
+      </section>
+    </div>
+    <div class="custom-attribution-float">
+      <a class="github-project-link" href="https://github.com/Blackxool/FlightCanvas" target="_blank" title="在 GitHub 查看 Blackxool/FlightCanvas">
+        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" alt="GitHub" class="github-mode-logo">
+      </a>
+      | <span class="carto-attribution">&copy; <a href="https://carto.com/" target="_blank">CARTO</a></span>
+      | <span class="inline-disclaimer-wrapper" tabindex="0" aria-describedby="disclaimer-details">免责声明
+        <div class="inline-disclaimer-popup" id="disclaimer-details">
+          <strong>使用与许可</strong>
+          <p>Flight Canvas 提供本地航班记录的可视化设计与导出服务。用户应对导入的数据和生成内容负责；项目允许非商业使用、修改与传播，但须保留来源及许可说明，未经授权不得出售或用于收费服务。第三方资源遵循各自许可，本软件按现状提供，作者不对数据丢失或使用结果承担责任。</p>
+        </div>
+      </span>
+    </div>
+    <dialog class="stack-picker" id="stack-picker" aria-labelledby="stack-picker-title">
+      <div class="stack-picker-header"><h2 id="stack-picker-title">加入叠放</h2><button type="button" data-close-stack-picker aria-label="关闭">×</button></div>
+      <div class="stack-picker-content" id="stack-picker-content"></div>
+    </dialog>
+    <dialog class="stack-picker card-picker" id="card-picker" aria-labelledby="card-picker-title">
+      <div class="stack-picker-header"><h2 id="card-picker-title">添加卡片</h2><button type="button" data-close-card-picker aria-label="关闭">×</button></div>
+      <div class="stack-picker-content"><div class="widget-buttons" id="widget-buttons"></div></div>
+    </dialog>
+    <div class="card-hover-preview" id="card-hover-preview" popover="manual" aria-hidden="true"></div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="assets/html-to-image.js"></script>
+    <script type="module" src="sillage.js?rev=20260806-image-preview"></script>
+  </body>
+</html>
